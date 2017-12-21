@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">BackgroundMusicPlay</string>
+    <string name="List">Play List</string>
 </resources>

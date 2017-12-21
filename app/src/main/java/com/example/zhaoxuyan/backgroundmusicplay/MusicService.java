@@ -8,6 +8,7 @@ import android.net.Uri;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.RemoteException;
 import android.util.Log;
 
 /**
@@ -19,20 +20,59 @@ import android.util.Log;
 
 public class MusicService extends Service {
 
-    class MyBinder extends Binder {
+    @Override
+    public String getPackageName() {
+        return "com.example.zhaoxuyan.backgroundmusicplay";
+    }
 
-        Service getService() {
+
+    private Uri[] musicDir = new Uri[]{
+            Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.say),
+            Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.outlaw),
+            Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.thisthing),
+            Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.litanybedroom),
+            Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.terrorjrdeathwish),
+    };
+
+    public int musicIndex = 0;
+
+    public void setMusicIndex(int musicIndex) {
+        this.musicIndex = musicIndex;
+    }
+
+    public int getMusicIndex() {
+        return this.musicIndex;
+    }
+
+
+    public class MyIBinder extends Binder {
+
+        public Service getService() {
             return MusicService.this;
         }
     }
 
-    IBinder musicBinder = new MyBinder();
+    IBinder musicIBinder = new MyIBinder();
 
     @Override
-    public IBinder onBind(Intent arg0) {
+    public IBinder onBind(Intent intent) {
         // TODO Auto-generated method stub
         //当绑定后，返回一个musicBinder
-        return musicBinder;
+        return musicIBinder;
+//        return new IMyAidl();
+    }
+
+    public class IMyAidl extends IMyAidlInterface.Stub {
+
+        @Override
+        public void basicTypes(int anInt, long aLong, boolean aBoolean, float aFloat, double aDouble, String aString) throws RemoteException {
+
+        }
+
+        @Override
+        public void play() throws RemoteException {
+            MusicService.this.play();
+        }
     }
 
     //获取到activity的Handler，用来通知更新进度条
@@ -56,8 +96,8 @@ public class MusicService extends Service {
         //进入Idle
         mediaPlayer = new MediaPlayer();
         try {
-            //初始化
-            mediaPlayer = MediaPlayer.create(this, Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.say));
+            //初始化音乐文件
+            mediaPlayer = MediaPlayer.create(this, musicDir[musicIndex]);
 
             mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
 
@@ -90,9 +130,18 @@ public class MusicService extends Service {
     //测试播放音乐
     public void play() {
         if (mediaPlayer != null) {
+            mediaPlayer.setLooping(true);
             mediaPlayer.start();
         }
+    }
 
+    public void recycleTrue(){
+        mediaPlayer.setLooping(true);
+
+    }
+
+    public void recycleFalse(){
+        mediaPlayer.setLooping(false);
     }
 
     //暂停音乐
@@ -101,6 +150,59 @@ public class MusicService extends Service {
             mediaPlayer.pause();
         }
     }
+
+    //切换上一首音乐
+    public void preMusic() {
+        if (mediaPlayer != null && musicIndex > -1) {
+            mediaPlayer.reset();
+            mediaPlayer.stop();
+            try {
+                if (musicIndex == 0) {
+                    mediaPlayer = MediaPlayer.create(this, musicDir[musicDir.length - 1]);
+                    musicIndex = musicDir.length - 1;
+                } else {
+                    mediaPlayer = MediaPlayer.create(this, musicDir[musicIndex - 1]);
+                    musicIndex--;
+                }
+//                mediaPlayer.seekTo(0);
+                play();
+            } catch (Exception e) {
+                Log.d("hint", "can't jump button_pre music");
+                e.printStackTrace();
+            }
+        }
+    }
+
+    //切换下一首音乐
+    public void nextMusic() {
+        if (mediaPlayer != null && musicIndex < musicDir.length) {
+            mediaPlayer.reset();
+            mediaPlayer.stop();
+            try {
+                if (musicIndex == musicDir.length - 1) {
+                    mediaPlayer = MediaPlayer.create(this, musicDir[0]);
+                    musicIndex = 0;
+                } else {
+                    mediaPlayer = MediaPlayer.create(this, musicDir[musicIndex + 1]);
+                    musicIndex++;
+                }
+                play();
+            } catch (Exception e) {
+                Log.d("hint", "can't jump button_next music");
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void changeMusic() {
+        mediaPlayer.stop();
+        mediaPlayer.reset();
+        mediaPlayer = MediaPlayer.create(this, musicDir[musicIndex]);
+        mediaPlayer.seekTo(0);
+        mediaPlayer.start();
+
+    }
+
 
     //service 销毁时，停止播放音乐，释放资源
     @Override

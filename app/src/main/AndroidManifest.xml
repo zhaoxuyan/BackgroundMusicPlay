@@ -16,7 +16,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <service android:name=".MusicService" />
+
+        <service
+            android:name=".MusicService"
+            android:exported="true" />
+
+        <activity
+            android:name=".playlist.PlayListAcitivity"
+            android:label="Play List">
+        </activity>
+
     </application>
 
 </manifest>
